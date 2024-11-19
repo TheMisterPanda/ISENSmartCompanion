@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "fr.isen.beucher.isensmartcompanion"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "fr.isen.beucher.isensmartcompanion"
