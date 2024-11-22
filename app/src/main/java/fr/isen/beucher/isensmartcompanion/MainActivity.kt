@@ -44,9 +44,9 @@ fun BottomNavigationApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Main.route) { MainScreen() }
-            composable(Screen.Events.route) { EventsScreen() }
-            composable(Screen.Agenda.route) { AgendaScreen() }
-            composable(Screen.History.route) { HistoryScreen() }
+            composable(Screen.Events.route) { Events() }
+            composable(Screen.Agenda.route) { Agenda() }
+            composable(Screen.History.route) { History() }
         }
     }
 }
@@ -74,36 +74,6 @@ fun BottomNavigationBar(navController: NavController) {
                 label = { Text(screen.title) }
             )
         }
-    }
-}
-
-@Composable
-fun EventsScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Événements à venir", style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-fun AgendaScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Voici votre agenda", style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-fun HistoryScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Historique des activités", style = MaterialTheme.typography.bodyLarge)
     }
 }
 
