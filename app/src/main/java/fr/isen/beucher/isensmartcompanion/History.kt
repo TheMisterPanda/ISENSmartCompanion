@@ -1,19 +1,65 @@
 package fr.isen.beucher.isensmartcompanion
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import fr.isen.beucher.isensmartcompanion.database.DatabaseManager
+import fr.isen.beucher.isensmartcompanion.database.Interaction
 
 @Composable
-fun History() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Historique des activités", style = MaterialTheme.typography.bodyLarge)
+fun HistoryScreen(databaseManager: DatabaseManager) {
+    // Observer les interactions de la base de données
+    val interactions by databaseManager.interactions.collectAsState(initial = emptyList())
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Titre de l'historique
+        Text(
+            text = "Historique des interactions",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Divider(color = androidx.compose.ui.graphics.Color.Gray)
+
+        // Affichage de la liste des interactions
+        LazyColumn {
+            items(interactions) { interaction ->
+                InteractionItem(interaction)
+            }
+        }
+    }
+}
+
+@Composable
+fun InteractionItem(interaction: Interaction) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Affichage du message de l'utilisateur en noir
+        if (interaction.userInput != "" && interaction.aiResponse != ""){
+            Text(
+                text = "Utilisateur : ${interaction.userInput}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = androidx.compose.ui.graphics.Color.Black,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "IA : ${interaction.aiResponse}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = androidx.compose.ui.graphics.Color.Blue,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Divider(color = androidx.compose.ui.graphics.Color.Gray)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }

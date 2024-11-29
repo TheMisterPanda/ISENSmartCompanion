@@ -25,21 +25,21 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import fr.isen.beucher.isensmartcompanion.database.AppDatabase
 import fr.isen.beucher.isensmartcompanion.database.DatabaseManager
-import fr.isen.beucher.isensmartcompanion.ui.theme.ISENSmartCompanionTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val database = AppDatabase.getDatabase(applicationContext)
+        val databaseManager = DatabaseManager(database.interactionDao())
+
         setContent {
-            ISENSmartCompanionTheme {
-                BottomNavigationApp()
-            }
+            BottomNavigationApp(databaseManager)
         }
     }
 }
 
 @Composable
-fun BottomNavigationApp() {
+fun BottomNavigationApp(databaseManager: DatabaseManager) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -52,10 +52,10 @@ fun BottomNavigationApp() {
             startDestination = Screen.Main.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Main.route) { MainScreen() }
+            composable(Screen.Main.route) { MainScreen(databaseManager = databaseManager) }
             composable(Screen.Events.route) { Events() }
             composable(Screen.Agenda.route) { Agenda() }
-            composable(Screen.History.route) { History() }
+            composable(Screen.History.route) { HistoryScreen(databaseManager) }
         }
     }
 }

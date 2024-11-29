@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    id ("kotlin-kapt")
 }
 
 android {
@@ -71,4 +72,13 @@ dependencies {
     implementation(libs.generativeai)
 
     implementation (libs.androidx.lifecycle.viewmodel.ktx)
+
+    implementation (libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler.v250)
+    implementation (libs.androidx.room.ktx)
+
+    kapt (libs.androidx.room.compiler)
+
+    // Kotlin coroutines et Flow
+    implementation (libs.kotlinx.coroutines.core)
 }

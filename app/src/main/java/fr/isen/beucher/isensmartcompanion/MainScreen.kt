@@ -16,12 +16,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fr.isen.beucher.isensmartcompanion.database.DatabaseManager
+import fr.isen.beucher.isensmartcompanion.database.Interaction
 import fr.isen.beucher.isensmartcompanion.ia.GeminiIA
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun MainScreen() {
+fun MainScreen(databaseManager: DatabaseManager) {
     // Instancier le ViewModel de l'IA
     val iaViewModel: GeminiIA = viewModel()
 
@@ -46,7 +48,23 @@ fun MainScreen() {
                 // Logo en haut
                 GreetingImage()
 
-                // Liste des messages et zone d'entrée
+                // Affichage des messages dans la colonne
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)  // Le contenu des messages occupe le maximum d'espace
+                        .fillMaxWidth()
+                ) {
+                    items(messages) { (message, isFromApp) ->
+                        Text(
+                            text = message,
+                            color = if (isFromApp) Color.Blue else Color.Black,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+                }
+
+                // Zone d'entrée et bouton au bas
+                Spacer(modifier = Modifier.weight(0.1f))  // Crée un espace flexible pour pousser l'entrée en bas
                 MessageAndInput(
                     messages = messages,
                     onMessageSend = { message ->
@@ -56,18 +74,42 @@ fun MainScreen() {
                         // Envoyer la requête à l'IA
                         iaViewModel.generateResponse(message)
                     },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxWidth()
                 )
-
-                // Ajout de la réponse IA si disponible et pas encore ajoutée
-                iaResponse?.let { response ->
-                    if (response != lastProcessedResponse) {
-                        messages = messages + (response to true)
-                        lastProcessedResponse = response // Marque cette réponse comme traitée
-                    }
-                }
             }
         }
+    }
+
+    // Enregistrer les interactions dans la base de données après chaque modification des messages
+    SaveInteractionsToDatabase(messages, databaseManager)
+
+    // Ajout de la réponse IA si disponible et pas encore ajoutée
+    iaResponse?.let { response ->
+        if (response != lastProcessedResponse) {
+            // Ajouter la réponse IA
+            messages = messages + (response to true)
+            lastProcessedResponse = response // Marque cette réponse comme traitée
+        }
+    }
+}
+
+@Composable
+fun SaveInteractionsToDatabase(messages: List<Pair<String, Boolean>>, databaseManager: DatabaseManager) {
+    // L'effet de lancement se déclenche chaque fois que la liste des messages change
+    val interaction = Interaction(
+        userInput = "",
+        aiResponse = "",
+        timestamp = System.currentTimeMillis()
+    )
+    LaunchedEffect(messages) {
+        messages.forEach { (message, isFromApp) ->
+            if (isFromApp) {
+                interaction.aiResponse = message
+            } else {
+                interaction.userInput = message
+            }
+        }
+        databaseManager.addInteraction(interaction)
     }
 }
 
@@ -93,25 +135,6 @@ fun MessageAndInput(
     val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = modifier) {
-        // Liste des messages
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(messages) { (message, isFromApp) ->
-                    Text(
-                        text = message,
-                        color = if (isFromApp) Color.Blue else Color.Black,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                }
-            }
-        }
-
         // Zone d'entrée
         Column(
             modifier = Modifier
