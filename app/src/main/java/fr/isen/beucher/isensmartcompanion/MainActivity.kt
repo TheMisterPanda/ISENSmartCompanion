@@ -1,6 +1,5 @@
 package fr.isen.beucher.isensmartcompanion
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,6 +23,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import fr.isen.beucher.isensmartcompanion.database.AppDatabase
+import fr.isen.beucher.isensmartcompanion.database.DatabaseManager
 import fr.isen.beucher.isensmartcompanion.ui.theme.ISENSmartCompanionTheme
 
 class MainActivity : ComponentActivity() {

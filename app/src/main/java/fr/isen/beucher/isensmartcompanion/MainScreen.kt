@@ -2,34 +2,35 @@ package fr.isen.beucher.isensmartcompanion
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import fr.isen.beucher.isensmartcompanion.ia.GeminiIA
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen() {
+    // Instancier le ViewModel de l'IA
+    val iaViewModel: GeminiIA = viewModel()
+
+    // Observer l'état des réponses de l'IA
+    val iaResponse by iaViewModel.textGenerationResult.collectAsState()
+
+    // Messages utilisateur/IA
     var messages by remember { mutableStateOf(listOf<Pair<String, Boolean>>()) }
+    var lastProcessedResponse by remember { mutableStateOf<String?>(null) } // Nouvelle variable pour éviter la boucle
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Box(
@@ -37,7 +38,6 @@ fun MainScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Contenu principal
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -50,24 +50,25 @@ fun MainScreen() {
                 MessageAndInput(
                     messages = messages,
                     onMessageSend = { message ->
-                        val response = generateRandomString(6) // Générer une réponse aléatoire
-                        messages =
-                            messages + (message to false) + (response to true) // Ajout utilisateur et application
+                        // Ajouter le message utilisateur
+                        messages = messages + (message to false)
+
+                        // Envoyer la requête à l'IA
+                        iaViewModel.generateResponse(message)
                     },
                     modifier = Modifier.fillMaxSize()
                 )
+
+                // Ajout de la réponse IA si disponible et pas encore ajoutée
+                iaResponse?.let { response ->
+                    if (response != lastProcessedResponse) {
+                        messages = messages + (response to true)
+                        lastProcessedResponse = response // Marque cette réponse comme traitée
+                    }
+                }
             }
         }
     }
-}
-
-
-// Génère une chaîne de caractères aléatoire de longueur spécifiée
-fun generateRandomString(length: Int): String {
-    val chars = ('A'..'Z') + ('a'..'z') // Lettres majuscules et minuscules
-    return (1..length)
-        .map { chars.random() }
-        .joinToString("")
 }
 
 @Composable
@@ -88,17 +89,14 @@ fun MessageAndInput(
     onMessageSend: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Gestion de l'état pour afficher le message temporaire
     var showSentMessage by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    Column(
-        modifier = modifier
-    ) {
-        // Liste des messages avec une hauteur maximale
+    Column(modifier = modifier) {
+        // Liste des messages
         Box(
             modifier = Modifier
-                .weight(1f) // Utilise l'espace disponible tout en respectant la zone inférieure
+                .weight(1f)
                 .fillMaxWidth()
         ) {
             LazyColumn(
@@ -107,7 +105,7 @@ fun MessageAndInput(
                 items(messages) { (message, isFromApp) ->
                     Text(
                         text = message,
-                        color = if (isFromApp) Color.Blue else Color.Black, // Changement de couleur
+                        color = if (isFromApp) Color.Blue else Color.Black,
                         modifier = Modifier.padding(vertical = 4.dp)
                     )
                 }
@@ -124,17 +122,16 @@ fun MessageAndInput(
                 onMessageSend = {
                     onMessageSend(it)
 
-                    // Affiche le message temporaire "Question envoyée"
+                    // Afficher "Question envoyée"
                     showSentMessage = true
                     coroutineScope.launch {
-                        delay(2000) // Garde le message visible pendant 2 secondes
+                        delay(2000)
                         showSentMessage = false
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Affichage du texte "Question envoyée" si nécessaire
             if (showSentMessage) {
                 Text(
                     text = "Question envoyée",
@@ -166,12 +163,11 @@ fun BasicTextFieldExample(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Bouton pour envoyer le message
         Button(
             onClick = {
                 if (text.isNotBlank()) {
-                    onMessageSend(text) // Passer le message pour traitement
-                    text = "" // Réinitialiser le champ de saisie
+                    onMessageSend(text)
+                    text = ""
                 }
             },
             modifier = Modifier.align(Alignment.End)
