@@ -1,5 +1,13 @@
 package fr.isen.beucher.isensmartcompanion
 
+import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,23 +17,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import fr.isen.beucher.isensmartcompanion.api.RetrofitInstance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,6 +46,7 @@ data class Event(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Events() {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var events by remember { mutableStateOf<List<Event>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -68,13 +70,15 @@ fun Events() {
     // Afficher l'écran en fonction de l'état actuel
     if (selectedEvent != null) {
         // Écran pour afficher les détails d'un événement
-        EventDetailScreen(event = selectedEvent!!, onBack = { selectedEvent = null })
+        EventDetailScreen(
+            context = context,
+            event = selectedEvent!!,
+            onBack = { selectedEvent = null }
+        )
     } else {
         // Écran pour afficher la liste des événements
         Scaffold(
-            topBar = {
-                TopAppBar(title = { Text("Events") })
-            }
+            topBar = { TopAppBar(title = { Text("Events") }) }
         ) { innerPadding ->
             Column(
                 modifier = Modifier
@@ -95,7 +99,9 @@ fun Events() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(events) { event ->
-                            EventItem(event = event) { selectedEvent = event }
+                            EventItem(event = event) {
+                                selectedEvent = event
+                            }
                         }
                     }
                 }
@@ -104,7 +110,6 @@ fun Events() {
     }
 }
 
-// Composable pour un item d'événement
 @Composable
 fun EventItem(event: Event, onClick: () -> Unit) {
     Card(
@@ -125,10 +130,12 @@ fun EventItem(event: Event, onClick: () -> Unit) {
     }
 }
 
-// Écran pour afficher les détails d'un événement
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventDetailScreen(event: Event, onBack: () -> Unit) {
+fun EventDetailScreen(context: Context, event: Event, onBack: () -> Unit) {
+    val sharedPreferences = context.getSharedPreferences("event_preferences", Context.MODE_PRIVATE)
+    val isPinned = remember { mutableStateOf(sharedPreferences.getBoolean(event.id, false)) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -140,6 +147,22 @@ fun EventDetailScreen(event: Event, onBack: () -> Unit) {
                             .padding(8.dp)
                             .clickable { onBack() }
                     )
+                },
+                actions = {
+                    IconButton(onClick = {
+                        val newPinnedState = !isPinned.value
+                        isPinned.value = newPinnedState
+                        sharedPreferences.edit().putBoolean(event.id, newPinnedState).apply()
+
+                        if (newPinnedState) {
+                            scheduleNotification(context, event)
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isPinned.value) Icons.Filled.Notifications else Icons.Outlined.Notifications,
+                            contentDescription = "Toggle Notification"
+                        )
+                    }
                 }
             )
         }
@@ -157,5 +180,52 @@ fun EventDetailScreen(event: Event, onBack: () -> Unit) {
             Text(text = "Location: ${event.location}", style = MaterialTheme.typography.bodyMedium)
             Text(text = "Category: ${event.category}", style = MaterialTheme.typography.bodySmall)
         }
+    }
+}
+
+fun scheduleNotification(context: Context, event: Event) {
+    val notificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    // Créer un canal de notification (Android 8+)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channel = NotificationChannel(
+            "event_reminders",
+            "Event Reminders",
+            NotificationManager.IMPORTANCE_HIGH
+        )
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    val notificationIntent = Intent(context, NotificationReceiver::class.java).apply {
+        putExtra("event_title", event.title)
+    }
+
+    val pendingIntent = PendingIntent.getBroadcast(
+        context,
+        event.id.hashCode(),
+        notificationIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val triggerTime = System.currentTimeMillis() + 10_000 // 10 secondes
+
+    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+}
+
+// BroadcastReceiver pour envoyer la notification
+class NotificationReceiver : android.content.BroadcastReceiver() {
+    @SuppressLint("MissingPermission", "NotificationPermission")
+    override fun onReceive(context: Context, intent: Intent?) {
+        val title = intent?.getStringExtra("event_title") ?: "Event Reminder"
+        val notification = NotificationCompat.Builder(context, "event_reminders")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Reminder")
+            .setContentText("Don't forget: $title")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(title.hashCode(), notification)
     }
 }

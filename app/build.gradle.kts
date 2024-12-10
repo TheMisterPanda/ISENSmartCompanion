@@ -81,4 +81,8 @@ dependencies {
 
     // Kotlin coroutines et Flow
     implementation (libs.kotlinx.coroutines.core)
+
+    implementation (libs.ui)
+    implementation (libs.androidx.material)
+    implementation (libs.ui.tooling.preview)
 }
