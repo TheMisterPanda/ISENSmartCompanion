@@ -8,8 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +24,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun Agenda() {
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    val events = remember { mutableStateMapOf<LocalDate, MutableList<String>>() }
+    var newEventText by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         selectedDate?.let {
@@ -33,6 +34,40 @@ fun Agenda() {
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            TextField(
+                value = newEventText,
+                onValueChange = { newEventText = it },
+                label = { Text("Nouvel événement") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    if (newEventText.isNotBlank()) {
+                        val eventList = events.getOrPut(selectedDate!!) { mutableListOf() }
+                        eventList.add(newEventText)
+                        newEventText = ""
+                    }
+                },
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                Text("Ajouter événement")
+            }
+
+            if (events[selectedDate].isNullOrEmpty()) {
+                Text("Aucun événement pour cette date.", style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    events[selectedDate]?.forEach { event ->
+                        Text(
+                            text = "- $event",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
+                    }
+                }
+            }
         }
 
         CalendarView { date ->
@@ -54,7 +89,7 @@ fun CalendarView(onDaySelected: (LocalDate?) -> Unit) {
             )
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(7), // 7 jours par semaine
+                columns = GridCells.Fixed(7),
                 modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 items(dates) { date ->
@@ -72,11 +107,11 @@ fun CalendarView(onDaySelected: (LocalDate?) -> Unit) {
 fun DayItem(date: LocalDate?, onDayClick: (LocalDate?) -> Unit) {
     Box(
         modifier = Modifier
-            .size(48.dp) // Taille fixe pour chaque case du calendrier
+            .size(48.dp)
             .padding(4.dp)
             .background(if (date != null) Color.LightGray else Color.Transparent)
             .border(1.dp, if (date != null) Color.Gray else Color.Transparent)
-            .clickable { onDayClick(date) }, // Rendre chaque jour cliquable
+            .clickable { onDayClick(date) },
         contentAlignment = Alignment.Center
     ) {
         if (date != null) {
@@ -108,20 +143,17 @@ fun generateYear2024(): List<Pair<String, List<LocalDate?>>> {
 
     return months.map { (month, daysInMonth) ->
         val firstDayOfMonth = LocalDate.of(2024, month, 1)
-        val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7 // 0 pour dimanche, 6 pour samedi
+        val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
         val totalCells = firstDayOfWeek + daysInMonth
 
         val dates = mutableListOf<LocalDate?>()
 
-        // Ajouter des jours vides pour aligner le début du mois
         repeat(firstDayOfWeek) { dates.add(null) }
 
-        // Ajouter les dates du mois
         dates.addAll((1..daysInMonth).map { day ->
             LocalDate.of(2024, month, day)
         })
 
-        // Ajouter des jours vides pour aligner la fin du mois (optionnel, pour un design plus carré)
         while (dates.size % 7 != 0) {
             dates.add(null)
         }

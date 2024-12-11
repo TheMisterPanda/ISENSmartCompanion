@@ -24,13 +24,10 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(databaseManager: DatabaseManager) {
-    // Instancier le ViewModel de l'IA
     val iaViewModel: GeminiIA = viewModel()
 
-    // Observer l'état des réponses de l'IA
     val iaResponse by iaViewModel.textGenerationResult.collectAsState()
 
-    // Messages utilisateur/IA
     var messages by remember { mutableStateOf(listOf<Pair<String, Boolean>>()) }
     var lastProcessedResponse by remember { mutableStateOf<String?>(null) } // Nouvelle variable pour éviter la boucle
 
@@ -45,13 +42,11 @@ fun MainScreen(databaseManager: DatabaseManager) {
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                // Logo en haut
                 GreetingImage()
 
-                // Affichage des messages dans la colonne
                 LazyColumn(
                     modifier = Modifier
-                        .weight(1f)  // Le contenu des messages occupe le maximum d'espace
+                        .weight(1f)
                         .fillMaxWidth()
                 ) {
                     items(messages) { (message, isFromApp) ->
@@ -63,15 +58,12 @@ fun MainScreen(databaseManager: DatabaseManager) {
                     }
                 }
 
-                // Zone d'entrée et bouton au bas
-                Spacer(modifier = Modifier.weight(0.1f))  // Crée un espace flexible pour pousser l'entrée en bas
+                Spacer(modifier = Modifier.weight(0.1f))
                 MessageAndInput(
                     messages = messages,
                     onMessageSend = { message ->
-                        // Ajouter le message utilisateur
                         messages = messages + (message to false)
 
-                        // Envoyer la requête à l'IA
                         iaViewModel.generateResponse(message)
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -80,22 +72,18 @@ fun MainScreen(databaseManager: DatabaseManager) {
         }
     }
 
-    // Enregistrer les interactions dans la base de données après chaque modification des messages
     SaveInteractionsToDatabase(messages, databaseManager)
 
-    // Ajout de la réponse IA si disponible et pas encore ajoutée
     iaResponse?.let { response ->
         if (response != lastProcessedResponse) {
-            // Ajouter la réponse IA
             messages = messages + (response to true)
-            lastProcessedResponse = response // Marque cette réponse comme traitée
+            lastProcessedResponse = response
         }
     }
 }
 
 @Composable
 fun SaveInteractionsToDatabase(messages: List<Pair<String, Boolean>>, databaseManager: DatabaseManager) {
-    // L'effet de lancement se déclenche chaque fois que la liste des messages change
     val interaction = Interaction(
         userInput = "",
         aiResponse = "",
@@ -135,7 +123,6 @@ fun MessageAndInput(
     val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = modifier) {
-        // Zone d'entrée
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -145,7 +132,6 @@ fun MessageAndInput(
                 onMessageSend = {
                     onMessageSend(it)
 
-                    // Afficher "Question envoyée"
                     showSentMessage = true
                     coroutineScope.launch {
                         delay(2000)

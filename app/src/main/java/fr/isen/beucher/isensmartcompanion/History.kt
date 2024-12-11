@@ -19,11 +19,9 @@ import fr.isen.beucher.isensmartcompanion.database.Interaction
 
 @Composable
 fun HistoryScreen(databaseManager: DatabaseManager) {
-    // Observer les interactions de la base de données
     val interactions by databaseManager.interactions.collectAsState(initial = emptyList())
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Titre de l'historique
         Text(
             text = "Historique des interactions",
             style = MaterialTheme.typography.titleLarge,
@@ -31,7 +29,6 @@ fun HistoryScreen(databaseManager: DatabaseManager) {
         )
         Divider(color = androidx.compose.ui.graphics.Color.Gray)
 
-        // Affichage de la liste des interactions
         LazyColumn {
             items(interactions) { interaction ->
                 InteractionItem(interaction)
@@ -43,7 +40,6 @@ fun HistoryScreen(databaseManager: DatabaseManager) {
 @Composable
 fun InteractionItem(interaction: Interaction) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Affichage du message de l'utilisateur en noir
         if (interaction.userInput != "" && interaction.aiResponse != ""){
             Text(
                 text = "Utilisateur : ${interaction.userInput}",

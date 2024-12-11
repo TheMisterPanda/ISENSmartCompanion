@@ -1,10 +1,8 @@
 package fr.isen.beucher.isensmartcompanion
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -55,14 +53,13 @@ fun BottomNavigationApp(databaseManager: DatabaseManager) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Main.route) { MainScreen(databaseManager = databaseManager) }
-            composable(Screen.Events.route) { Events() }
-            composable(Screen.Agenda.route) { Agenda() }
+            composable(Screen.Events.route) {Events() }
+            composable(Screen.Agenda.route) {Agenda() }
             composable(Screen.History.route) { HistoryScreen(databaseManager) }
         }
     }
 }
 
-// Enumérable pour gérer les écrans et leurs routes
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Main : Screen("main", "Accueil", Icons.Filled.Home)
     object Events : Screen("events", "Événements", Icons.Filled.Menu)

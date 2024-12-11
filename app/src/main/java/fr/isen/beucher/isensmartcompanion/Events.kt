@@ -33,7 +33,6 @@ import kotlinx.coroutines.launch
 import retrofit2.await
 import java.io.Serializable
 
-// Modèle de données pour Event
 data class Event(
     val id: String,
     val title: String,
@@ -45,7 +44,7 @@ data class Event(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Events() {
+fun Events(): List<Event> {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var events by remember { mutableStateOf<List<Event>>(emptyList()) }
@@ -53,7 +52,6 @@ fun Events() {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedEvent by remember { mutableStateOf<Event?>(null) }
 
-    // Charger les événements depuis le service web
     LaunchedEffect(Unit) {
         coroutineScope.launch(Dispatchers.IO) {
             try {
@@ -66,17 +64,13 @@ fun Events() {
             }
         }
     }
-
-    // Afficher l'écran en fonction de l'état actuel
     if (selectedEvent != null) {
-        // Écran pour afficher les détails d'un événement
         EventDetailScreen(
             context = context,
             event = selectedEvent!!,
             onBack = { selectedEvent = null }
         )
     } else {
-        // Écran pour afficher la liste des événements
         Scaffold(
             topBar = { TopAppBar(title = { Text("Events") }) }
         ) { innerPadding ->
@@ -108,6 +102,7 @@ fun Events() {
             }
         }
     }
+    return(events)
 }
 
 @Composable
@@ -183,11 +178,11 @@ fun EventDetailScreen(context: Context, event: Event, onBack: () -> Unit) {
     }
 }
 
+@SuppressLint("ScheduleExactAlarm")
 fun scheduleNotification(context: Context, event: Event) {
     val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    // Créer un canal de notification (Android 8+)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val channel = NotificationChannel(
             "event_reminders",
@@ -209,12 +204,11 @@ fun scheduleNotification(context: Context, event: Event) {
     )
 
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val triggerTime = System.currentTimeMillis() + 10_000 // 10 secondes
+    val triggerTime = System.currentTimeMillis() + 10_000
 
     alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
 }
 
-// BroadcastReceiver pour envoyer la notification
 class NotificationReceiver : android.content.BroadcastReceiver() {
     @SuppressLint("MissingPermission", "NotificationPermission")
     override fun onReceive(context: Context, intent: Intent?) {
